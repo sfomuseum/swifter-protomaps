@@ -1,4 +1,4 @@
-# SwifterProtomaps
+# SwiAfterProtomaps
 
 Swift package providing methods for serving Protomaps tile databases from [httpswift/swifter](https://github.com/httpswift/swifter) instances.
 
@@ -36,6 +36,28 @@ do {
 } catch {
 	print("Server start error: \(error)")
 }
+```
+
+And then in your JavaScript code load and use Protomaps as usual, pointing to the server running on `localhost:9000`:
+
+```
+        const p = new protomaps.PMTiles("http://localhost:9000/pmtiles/example.pmtiles");
+        
+        p.metadata().then(m => {
+            
+            let bounds_str = m.bounds.split(',')
+            let bounds = [[+bounds_str[1],+bounds_str[0]],[+bounds_str[3],+bounds_str[2]]]
+            
+            layer = new protomaps.LeafletLayer({
+	            attribution: '',
+        	    url:p ,
+	            bounds: bounds,
+            });
+            
+
+            layer.addTo(map);
+        });
+    }
 ```
 
 ## Swift Package Manager
