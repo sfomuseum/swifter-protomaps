@@ -6,6 +6,8 @@ Swift package providing methods for serving Protomaps tile databases from httpsw
 
 This package provides a simple `ServeProtomapsTiles` helper method to serve one or more Protomaps tile databases using HTTP `Range` header requests, inclusive of setting any necessary `CORS` headers.
 
+It was designed for use with an iOS application built around `WKWebKitView` views whose HTML/JavaScript code need to load and render local (on device) Protomaps tiles.
+
 It is not designed to be a general purpose function for serving files using HTTP `Range` requests.
 
 ## Example
