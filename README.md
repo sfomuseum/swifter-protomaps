@@ -59,7 +59,10 @@ dependencies: [
 
 ## Notes
 
-This package requires iOS 13.4 or higher or MacOS 10.15.4 or higher.
+This package requires:
+
+* iOS 13.4 or higher
+* MacOS 10.15.4 or higher.
 
 ## See also
 
