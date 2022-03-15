@@ -7,15 +7,21 @@ public struct ServeProtomapsOptions {
     /// Root is the root directory to serve Protomaps tiles from
     public var Root: URL
     /// AllowOrigin is a string containing zero or more allowed origins for CORs requests and responses.
-    public var AllowOrigin: String
+    public var AllowOrigins: String
     /// AllowOrigin is a string containing zero or more allowed headers for CORs requests and responses.
     public var AllowHeaders: String
     /// Logger is an option swift-logging instance for recording errors and warning.
     public var Logger: Logger?
+    
+    public init(root: URL) {
+                Root = root
+                AllowOrigins = ""
+                AllowHeaders = ""
+    }
 }
 
-@available(macOS 10.15.4, *)
 /// ServeProtomapsTiles will serve HTTP range requests for zero or more Protomaps tile databases in a directory.
+@available(macOS 10.15.4, *)
 public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest) -> HttpResponse) {
         return { r in
                    
@@ -35,7 +41,7 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             }
                                     
             guard var range_h = r.headers["range"] else {
-                rsp_headers["Access-Control-Allow-Origin"] = opts.AllowOrigin
+                rsp_headers["Access-Control-Allow-Origin"] = opts.AllowOrigins
                 rsp_headers["Access-Control-Allow-Headers"] = opts.AllowHeaders
                 return .raw(200, "OK", rsp_headers, {_ in })
             }
@@ -100,7 +106,7 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             let content_length = String(length)
             let content_range = "bytes \(start)-\(next)/\(filesize)"
                         
-            rsp_headers["Access-Control-Allow-Origin"] = opts.AllowOrigin
+            rsp_headers["Access-Control-Allow-Origin"] = opts.AllowOrigins
             rsp_headers["Access-Control-Allow-Headers"] = opts.AllowHeaders
             rsp_headers["Content-Length"] = content_length
             rsp_headers["Content-Range"] = content_range
