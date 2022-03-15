@@ -21,6 +21,7 @@ public struct ServeProtomapsOptions {
 }
 
 /// ServeProtomapsTiles will serve HTTP range requests for zero or more Protomaps tile databases in a directory.
+@available(iOS 13.4, *)
 @available(macOS 10.15.4, *)
 public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest) -> HttpResponse) {
         return { r in
@@ -28,7 +29,7 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             var rsp_headers = [String: String]()
             
             guard let rel_path = r.params.first else {
-                        return .notFound
+                return .raw(404, "Not found", rsp_headers, {_ in })
             }
                             
             let uri = opts.Root.appendingPathComponent(rel_path.value)
@@ -37,9 +38,17 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             // https://developer.apple.com/documentation/foundation/filehandle
             
             guard let file =  FileHandle(forReadingAtPath: path) else {
-                return .notFound
+                return .raw(404, "Not found", rsp_headers, {_ in })
             }
-                                    
+            
+            defer {
+                do {
+                    try file.close()
+                } catch (let error) {
+                    opts.Logger?.warning("Failed to close \(path), \(error)")
+                }
+            }
+            
             guard var range_h = r.headers["range"] else {
                 rsp_headers["Access-Control-Allow-Origin"] = opts.AllowOrigins
                 rsp_headers["Access-Control-Allow-Headers"] = opts.AllowHeaders
@@ -113,8 +122,12 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             rsp_headers["Accept-Ranges"] = "bytes"
                         
             return .raw(206, "Partial Content", rsp_headers, { writer in
-                try? writer.write(body)
-                try? file.close()
+                
+                do {
+                    try writer.write(body)
+                } catch (let error) {
+                    opts.Logger?.error("Failed to write body, \(error)")
+                }
             })
         }
     }
