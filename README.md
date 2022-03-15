@@ -10,12 +10,17 @@ import SwifterProtomaps
 
 do {
             
-	let root = "/path/to/pmtiles"
+	let root = URL(string: "/path/to/pmtiles")
 	let port: in_port_t  = 9000
-	
-	let server = HttpServer()
-            
-	server["/pmtiles/:path"] = SwifterProtomaps.ServeTiles(root)
+	            
+    let opts = ServeProtomapsOptions()
+    opts.Root = root
+    opts.AllowOrigins = "*"
+    opts.AllowHeaders = "*"
+    
+    let server = HttpServer()
+
+	server["/pmtiles/:path"] = ServeProtomapsTiles(root)
 	try server.start(port)
 	
 } catch {
