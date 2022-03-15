@@ -1,6 +1,12 @@
 # SwifterProtomaps
 
-Work in progress.
+Swift package providing methods for serving Protomaps tile databases from httpswift/swifter instances.
+
+## Motivation
+
+This package provides a simple `ServeProtomapsTiles` helper method to serve one or more Protomaps tile databases using HTTP `Range` header requests, inclusive of setting any necessary `CORS` headers.
+
+It is not designed to be a general purpose function for serving files using HTTP `Range` requests.
 
 ## Example
 
@@ -10,15 +16,17 @@ import SwifterProtomaps
 
 do {
             
-	let root = URL(string: "/path/to/pmtiles")
+	guard let root = URL(string: "/path/to/pmtiles") else {
+		raise NSException(name:"InvalidURL", reason:"Invalid URL", userInfo:nil).raise()
+	}
+	
 	let port: in_port_t  = 9000
 	            
-    let opts = ServeProtomapsOptions()
-    opts.Root = root
-    opts.AllowOrigins = "*"
-    opts.AllowHeaders = "*"
+	let opts = ServeProtomapsOptions(root: root)
+	opts.AllowOrigins = "*"
+	opts.AllowHeaders = "*"
     
-    let server = HttpServer()
+	let server = HttpServer()
 
 	server["/pmtiles/:path"] = ServeProtomapsTiles(root)
 	try server.start(port)
@@ -27,6 +35,29 @@ do {
 	print("Server start error: \(error)")
 }
 ```
+
+## Swift Package Manager
+
+Add the following entries to your `dependencies` block and any relevant `target` blocks.
+
+```
+dependencies: [
+    	.package(url: "https://github.com/sfomuseum/swift-protomaps.git", from: "0.0.1"),
+]
+```
+
+```
+.target(
+	name: "{YOUR_TARGET}",
+	dependencies: [
+		.product(name: "SwifterProtomaps", package: "swifter-protomaps")
+	]
+)
+```
+
+## Notes
+
+This package requires iOS 13.4 or higher or MacOS 10.15.4 or higher.
 
 ## See also
 
