@@ -62,9 +62,9 @@ And then in your JavaScript code load and use Protomaps as usual, pointing to th
     }
 ```
 
-![](docs/images/swifter-protomaps-example.png)
+You can see a working example of this in the [sfomuseum/swifter-protomaps-example](https://github.com/sfomuseum/swifter-protomaps-example) package:
 
-You can see a working example of this in the [sfomuseum/swifter-protomaps-example](https://github.com/sfomuseum/swifter-protomaps-example) package.
+![](docs/images/swifter-protomaps-example.png)
 
 ## AppTransportSecurity
 
