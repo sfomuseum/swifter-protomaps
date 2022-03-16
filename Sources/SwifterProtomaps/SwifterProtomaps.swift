@@ -26,6 +26,7 @@ public struct ServeProtomapsOptions {
 public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest) -> HttpResponse) {
         return { r in
                    
+            print("WOO \(opts)")
             var rsp_headers = [String: String]()
             
             guard let rel_path = r.params.first else {

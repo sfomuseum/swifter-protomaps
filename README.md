@@ -38,6 +38,8 @@ do {
 }
 ```
 
+_Note: If you define `server` inside a function or a closure and don't persist the variable globally the HTTP server will stop as soon as the variable goes out of scope. This is obvious if you stop to think about it but sometimes these things aren't obvious and you end up burning a lot of cycles figuring it out all over again. Maybe it's just me..._
+
 And then in your JavaScript code load and use Protomaps as usual, pointing to the server running on `localhost:9000`:
 
 ```
@@ -58,6 +60,32 @@ And then in your JavaScript code load and use Protomaps as usual, pointing to th
             layer.addTo(map);
         });
     }
+```
+
+![](docs/images/swifter-protomaps-example.png)
+
+You can see a working example of this in the [sfomuseum/swifter-protomaps-example](https://github.com/sfomuseum/swifter-protomaps-example) package.
+
+## AppTransportSecurity
+
+You will need to ensure your application has the following `NSAppTransportSecurity` settings:
+
+```
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
 ```
 
 ## Swift Package Manager
@@ -88,5 +116,6 @@ This package requires:
 
 ## See also
 
+* https://github.com/sfomuseum/swifter-protomaps-example
 * https://github.com/httpswift/swifter
 * https://github.com/protomaps/
