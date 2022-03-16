@@ -1,4 +1,4 @@
-# SwiAfterProtomaps
+# SwifterProtomaps
 
 Swift package providing methods for serving Protomaps tile databases from [httpswift/swifter](https://github.com/httpswift/swifter) instances.
 
