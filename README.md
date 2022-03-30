@@ -32,7 +32,7 @@ do {
     
 	let server = HttpServer()
 
-	server["/pmtiles/:path"] = ServeProtomapsTiles(root)
+	server["/pmtiles/:path"] = ServeProtomapsTiles(opts)
 	try server.start(port)
 	
 } catch {
