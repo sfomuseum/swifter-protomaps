@@ -11,6 +11,7 @@ It was designed for use with an iOS application built around `WKWebKitView` view
 It is not designed to be a general purpose function for serving files using HTTP `Range` requests.
 
 For a longer version detailing why we did this please see the [Serving map tiles to yourself using Protomaps and iOS](https://millsfield.sfomuseum.org/blog/2022/03/30/swifter-protomaps/) blog post.
+
 ## Example
 
 ```
