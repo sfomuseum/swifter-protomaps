@@ -12,10 +12,10 @@
     {
       "identity" : "swifter",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/httpswift/swifter.git",
+      "location" : "https://github.com/sfomuseum/swifter.git",
       "state" : {
-        "revision" : "9483a5d459b45c3ffd059f7b55f9638e268632fd",
-        "version" : "1.5.0"
+        "branch" : "main",
+        "revision" : "a2cf785de839f3d539d0b64b7db0d81d6cbb8b43"
       }
     }
   ],
