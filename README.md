@@ -26,7 +26,7 @@ do {
 	
 	let port: in_port_t  = 9000
 	            
-	let opts = ServeProtomapsOptions(root: root)
+	var opts = ServeProtomapsOptions(root: root)
 	opts.AllowOrigins = "*"
 	opts.AllowHeaders = "*"
     
@@ -119,5 +119,5 @@ This package requires:
 ## See also
 
 * https://github.com/sfomuseum/swifter-protomaps-example
-* https://github.com/httpswift/swifter
+* https://github.com/sfomuseum/swifter
 * https://github.com/protomaps/
