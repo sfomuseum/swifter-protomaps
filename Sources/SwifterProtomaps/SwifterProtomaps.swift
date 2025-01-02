@@ -118,12 +118,16 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             return .raw(400, "Bad Request", rsp_headers, {_ in })
         }
         
+        opts.Logger?.debug("Read data from \(path) start: \(start) stop: \(stop)")
+        
         let next = stop + 1
         
         let body: Data!
         // file.seek(toFileOffset: start)
         
         do {
+            
+            opts.Logger?.debug("Seek \(path) to \(start)")
             
             if opts.UseFileDescriptor {
                 try fd?.seek(offset: Int64(start), from: FileDescriptor.SeekOrigin.start)
@@ -136,6 +140,8 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
             return .raw(500, "Internal Server Error", rsp_headers, {_ in })
         }
+        
+        opts.Logger?.debug("Read data from \(path) to \(next)")
         
         if opts.UseFileDescriptor {
         
