@@ -15,15 +15,15 @@ public struct ServeProtomapsOptions {
     public var Logger: Logger?
     /// Optional string to strip from URL paths before processing
     public var StripPrefix: String
-    /// Optional value to use System.FileDescriptor rather than Foundation.FileHandle to read data. Experimental.
+    /// Optional value to use System.FileDescriptor rather than Foundation.FileHandle to read data. This is necessary when reading from very large Protomaps databases. This should still be considered experimental as in "It works, but if you find a bug I won't be shocked or anything."
     public var UseFileDescriptor: Bool
     
     public init(root: URL) {
-                Root = root
-                AllowOrigins = ""
-                AllowHeaders = ""
-                StripPrefix = ""
-                UseFileDescriptor = false
+        Root = root
+        AllowOrigins = ""
+        AllowHeaders = ""
+        StripPrefix = ""
+        UseFileDescriptor = false
     }
 }
 
@@ -31,7 +31,7 @@ public struct ServeProtomapsOptions {
 @available(iOS 14.0, *)
 @available(macOS 11.0, *)
 public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest) -> HttpResponse) {
-        
+    
     return { r in
         
         var rsp_headers = [String: String]()
@@ -41,7 +41,6 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         }
         
         var rel_path = req_path.value
-        // opts.Logger?.info("Handle request \(rel_path)")
         
         if opts.StripPrefix != "" {
             rel_path = rel_path.replacingOccurrences(of: opts.StripPrefix, with: "")
@@ -123,7 +122,6 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         let next = stop + 1
         
         let body: Data!
-        // file.seek(toFileOffset: start)
         
         do {
             
@@ -144,7 +142,7 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         opts.Logger?.debug("Read data from \(path) to \(next)")
         
         if opts.UseFileDescriptor {
-        
+            
             let read_len = Int(UInt64(next) - start)
             opts.Logger?.debug("Read \(read_len) bytes from \(path)")
             
@@ -166,21 +164,27 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
                 return .raw(500, "Internal Server Error", rsp_headers, {_ in })
             }
             
-        } 
+        }
         
         // https://httpwg.org/specs/rfc7233.html#header.accept-ranges
-                
+        
         var filesize = "*"
         
-        if opts.UseFileDescriptor {
-            () // pass for now
-        } else {
-            do {
+        do {
+            if opts.UseFileDescriptor {
+                
+                let size = try fd!.seek(offset: 0, from: FileDescriptor.SeekOrigin.end)
+                filesize = String(size)
+                
+                opts.Logger?.debug("filesize \(filesize)")
+                
+            } else {
+                
                 let size = try fh!.seekToEnd()
                 filesize = String(size)
-            } catch (let error){
-                opts.Logger?.warning("Failed to determine filesize for \(path), \(error)")
             }
+        } catch (let error){
+            opts.Logger?.warning("Failed to determine filesize for \(path), \(error)")
         }
         
         let length = UInt64(next) - start

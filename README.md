@@ -68,6 +68,29 @@ You can see a working example of this in the [sfomuseum/swifter-protomaps-exampl
 
 ![](docs/images/swifter-protomaps-example.png)
 
+## ServeProtomapsOptions
+
+`ServeProtomapsOptions` defines runtime options for serving Protomaps tiles.
+
+```
+public struct ServeProtomapsOptions {
+    /// Root is the root directory to serve Protomaps tiles from
+    public var Root: URL
+    /// AllowOrigin is a string containing zero or more allowed origins for CORs requests and responses. Default = "".
+    public var AllowOrigins: String
+    /// AllowHeaders is a string containing zero or more allowed headers for CORs requests and responses. Default is "".
+    public var AllowHeaders: String
+    /// Logger is an option swift-logging instance for recording errors and warning. Default is nil.
+    public var Logger: Logger?
+    /// Optional string to strip from URL paths before processing. Default is "".
+    public var StripPrefix: String
+    /// Optional value to use System.FileDescriptor rather than Foundation.FileHandle to read data. This is necessary when reading from very large Protomaps databases. This should still be considered experimental as in "It works, but if you find a bug I won't be shocked or anything." Default is false.
+    public var UseFileDescriptor: Bool
+}
+```
+
+Note the `UseFileDescriptor` option. If you are trying to serve the 120GB global tileset from an iOS application you will need to enable this. The default behaviour is to use `Foundation.FileHandle` to open files and a 120GB database will trigger POSIX "Cannot allocate memory" errors.
+
 ## AppTransportSecurity
 
 You will need to ensure your application has the following `NSAppTransportSecurity` settings:
@@ -96,7 +119,7 @@ Add the following entries to your `dependencies` block and any relevant `target`
 
 ```
 dependencies: [
-    	.package(url: "https://github.com/sfomuseum/swift-protomaps.git", from: "0.0.1"),
+    	.package(url: "https://github.com/sfomuseum/swift-protomaps.git", from: "0.1.0"),
 ]
 ```
 
@@ -109,12 +132,34 @@ dependencies: [
 )
 ```
 
+## swifter-protomaps-server
+
+`swifter-protomaps-server` is a minimal HTTP server for serving Protomaps files (using the `SwifterProtomaps` library).
+
+```
+$> swift build && ./.build/debug/swifter-protomaps-server --help
+Building for debugging...
+[11/11] Applying swifter-protomaps-server
+Build complete! (0.99s)
+USAGE: swifter-protomaps-server [--root <root>] [--port <port>] [--verbose <verbose>] [--filedescriptors <filedescriptors>]
+
+OPTIONS:
+  --root <root>           The parent directory where PMTiles databases should be served from.
+  --port <port>           The port to listen on for new connections (default: 8080)
+  --verbose <verbose>     Enable verbose logging (default: false)
+  --filedescriptors <filedescriptors>
+                          Use System.FileDescriptor rather than Foundation.FileHandle to read data. This is necessary when reading from very large Protomaps databases. This should
+                          still be considered experimental (default: false)
+  -h, --help              Show help information.
+```
+
+
 ## Notes
 
 This package requires:
 
-* iOS 13.4 or higher
-* MacOS 10.15.4 or higher.
+* iOS 14.0 or higher
+* MacOS 11.0 or higher.
 
 ## See also
 
