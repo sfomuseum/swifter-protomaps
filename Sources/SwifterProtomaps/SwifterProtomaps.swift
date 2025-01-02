@@ -47,8 +47,12 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             
             // https://developer.apple.com/documentation/foundation/filehandle
             
-            guard let file =  FileHandle(forReadingAtPath: path) else {
-                opts.Logger?.error("Not found: \(path)")
+            var file: FileHandle
+            
+            do {
+                file = try FileHandle(forReadingFrom: uri)
+            } catch {
+                opts.Logger?.error("Failed to open path (\(path)) for reading \(error)")
                 return .raw(404, "Not found", rsp_headers, {_ in })
             }
             
