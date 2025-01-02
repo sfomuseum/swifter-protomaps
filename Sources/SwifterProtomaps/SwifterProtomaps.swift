@@ -145,7 +145,10 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         
         if opts.UseFileDescriptor {
         
-            guard let data = readData(from: fd!.rawValue, length: next) else {
+            let read_len = Int(UInt64(stop) - start)
+            opts.Logger?.debug("Read \(read_len) bytes from \(path)")
+            
+            guard let data = readData(from: fd!.rawValue, length: Int(read_len)) else {
                 opts.Logger?.error("Failed to read to \(next) for \(path)")
                 rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
                 return .raw(500, "Internal Server Error", rsp_headers, {_ in })
