@@ -6,7 +6,7 @@ import Foundation
 
 @available(macOS 14.0, iOS 17.0, tvOS 17.0, *)
 @main
-struct ImageEmbossServer: AsyncParsableCommand {
+struct SwifterProtomapsServer: ParsableCommand {
     
     @Option(help: "The host name to listen for new connections")
     var host: String = "localhost"
@@ -20,7 +20,7 @@ struct ImageEmbossServer: AsyncParsableCommand {
     @Option(help: "Enable verbose logging")
     var verbose: Bool = false
     
-    func run() async throws {
+    func run() throws {
                 
         let log_label = "org.sfomuseum.swift-protomaps"
         let logger = Logger(label: log_label)
@@ -40,8 +40,17 @@ struct ImageEmbossServer: AsyncParsableCommand {
         server["/"] = { request in
             return HttpResponse.ok(.text("Hello world."))
         }
+                
+        let semaphore = DispatchSemaphore(value: 0)
         
-        try server.start(port)
-        
+        do {
+          try server.start(port)
+          logger.info("Server has started on \(port). Try to connect now...")
+          semaphore.wait()
+        } catch {
+            logger.error("Server start error: \(error)")
+          semaphore.signal()
+        }
+
     }
 }

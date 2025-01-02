@@ -15,12 +15,15 @@ public struct ServeProtomapsOptions {
     public var Logger: Logger?
     /// Optional string to strip from URL paths before processing
     public var StripPrefix: String
+    /// Optional value to use System.FileDescriptor rather than Foundation.FileHandle to read data. Experimental.
+    public var UseFileDescriptor: Bool
     
     public init(root: URL) {
                 Root = root
                 AllowOrigins = ""
                 AllowHeaders = ""
                 StripPrefix = ""
+                UseFileDescriptor = false
     }
 }
 
@@ -28,7 +31,7 @@ public struct ServeProtomapsOptions {
 @available(iOS 13.4, *)
 @available(macOS 11.0, *)
 public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest) -> HttpResponse) {
-    
+        
     return { r in
         
         var rsp_headers = [String: String]()
@@ -38,6 +41,7 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         }
         
         var rel_path = req_path.value
+        // opts.Logger?.info("Handle request \(rel_path)")
         
         if opts.StripPrefix != "" {
             rel_path = rel_path.replacingOccurrences(of: opts.StripPrefix, with: "")
@@ -48,13 +52,18 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         
         // https://developer.apple.com/documentation/foundation/filehandle
         
-        // var file: FileHandle
-        var file: FileDescriptor
+        var fh: FileHandle?
+        var fd: FileDescriptor?
         
         do {
-            // file = try FileHandle(forReadingFrom: uri)
-            let fp = FilePath(uri.absoluteString)
-            file = try FileDescriptor.open(fp, .readOnly)
+            
+            if opts.UseFileDescriptor {
+                let fp = FilePath(uri.absoluteString.replacingOccurrences(of: "file://", with: ""))
+                fd = try FileDescriptor.open(fp, .readOnly)
+            } else {
+                fh = try FileHandle(forReadingFrom: uri)
+            }
+            
         } catch {
             opts.Logger?.error("Failed to open path (\(path)) for reading \(error)")
             return .raw(404, "Not found", rsp_headers, {_ in })
@@ -62,7 +71,12 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         
         defer {
             do {
-                try file.close()
+                if opts.UseFileDescriptor {
+                    try fd?.close()
+                } else {
+                    try fh?.close()
+                }
+                
             } catch (let error) {
                 opts.Logger?.warning("Failed to close \(path), \(error)")
             }
@@ -106,46 +120,59 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         
         let next = stop + 1
         
-        // let body: Data!
+        let body: Data!
         // file.seek(toFileOffset: start)
         
         do {
-            try file.seek(offset: Int64(start), from: FileDescriptor.SeekOrigin.start)
+            
+            if opts.UseFileDescriptor {
+                try fd?.seek(offset: Int64(start), from: FileDescriptor.SeekOrigin.start)
+            } else {
+                fh?.seek(toFileOffset: start)
+            }
+            
         } catch {
             opts.Logger?.error("Failed to seek to \(start) for \(path), \(error)")
             rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
             return .raw(500, "Internal Server Error", rsp_headers, {_ in })
         }
         
-        guard let body = readData(from: file.rawValue, length: next) else {
-            opts.Logger?.error("Failed to read to \(next) for \(path)")
-            rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
-            return .raw(500, "Internal Server Error", rsp_headers, {_ in })
-        }
+        if opts.UseFileDescriptor {
+        
+            guard let data = readData(from: fd!.rawValue, length: next) else {
+                opts.Logger?.error("Failed to read to \(next) for \(path)")
+                rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
+                return .raw(500, "Internal Server Error", rsp_headers, {_ in })
+            }
             
-        /*
-        do {
-            // body = try file.read(upToCount: next)
-            body = try file.read(upToCount: next)
-        } catch (let error){
-            opts.Logger?.error("Failed to read to \(next) for \(path), \(error)")
-            rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
-            return .raw(500, "Internal Server Error", rsp_headers, {_ in })
-        }
-        */
+            body = data
+            
+        } else {
+            
+            do {
+                body = try fh?.read(upToCount: next)
+            } catch (let error){
+                opts.Logger?.error("Failed to read to \(next) for \(path), \(error)")
+                rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
+                return .raw(500, "Internal Server Error", rsp_headers, {_ in })
+            }
+            
+        } 
         
         // https://httpwg.org/specs/rfc7233.html#header.accept-ranges
                 
-        let filesize = "*"
+        var filesize = "*"
         
-        /*
-        do {
-            let size = try file.seekToEnd()
-            filesize = String(size)
-        } catch (let error){
-            opts.Logger?.warning("Failed to determine filesize for \(path), \(error)")
+        if opts.UseFileDescriptor {
+            () // pass for now
+        } else {
+            do {
+                let size = try fh!.seekToEnd()
+                filesize = String(size)
+            } catch (let error){
+                opts.Logger?.warning("Failed to determine filesize for \(path), \(error)")
+            }
         }
-        */
         
         let length = UInt64(next) - start
         
