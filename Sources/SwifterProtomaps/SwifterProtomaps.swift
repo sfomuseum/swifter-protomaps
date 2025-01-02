@@ -28,7 +28,7 @@ public struct ServeProtomapsOptions {
 }
 
 /// ServeProtomapsTiles will serve HTTP range requests for zero or more Protomaps tile databases in a directory.
-@available(iOS 13.4, *)
+@available(iOS 14.0, *)
 @available(macOS 11.0, *)
 public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest) -> HttpResponse) {
         
