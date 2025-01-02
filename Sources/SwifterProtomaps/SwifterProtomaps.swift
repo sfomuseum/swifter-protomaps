@@ -145,7 +145,7 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         
         if opts.UseFileDescriptor {
         
-            let read_len = Int(UInt64(stop) - start)
+            let read_len = Int(UInt64(next) - start)
             opts.Logger?.debug("Read \(read_len) bytes from \(path)")
             
             guard let data = readData(from: fd!.rawValue, length: Int(read_len)) else {
