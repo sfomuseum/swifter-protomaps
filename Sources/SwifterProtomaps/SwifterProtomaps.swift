@@ -12,11 +12,14 @@ public struct ServeProtomapsOptions {
     public var AllowHeaders: String
     /// Logger is an option swift-logging instance for recording errors and warning.
     public var Logger: Logger?
+    /// Optional string to strip from URL paths before processing
+    public var StripPrefix: String
     
     public init(root: URL) {
                 Root = root
                 AllowOrigins = ""
                 AllowHeaders = ""
+                StripPrefix = ""
     }
 }
 
@@ -24,20 +27,28 @@ public struct ServeProtomapsOptions {
 @available(iOS 13.4, *)
 @available(macOS 10.15.4, *)
 public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest) -> HttpResponse) {
+        
         return { r in
                    
             var rsp_headers = [String: String]()
             
-            guard let rel_path = r.params.first else {
+            guard let req_path = r.params.first else {
                 return .raw(404, "Not found", rsp_headers, {_ in })
             }
                             
-            let uri = opts.Root.appendingPathComponent(rel_path.value)
+            var rel_path = req_path.value
+            
+            if opts.StripPrefix != "" {
+                rel_path = rel_path.replacingOccurrences(of: opts.StripPrefix, with: "")
+            }
+            
+            let uri = opts.Root.appendingPathComponent(rel_path)
             let path = uri.absoluteString
             
             // https://developer.apple.com/documentation/foundation/filehandle
             
             guard let file =  FileHandle(forReadingAtPath: path) else {
+                opts.Logger?.error("Not found: \(path)")
                 return .raw(404, "Not found", rsp_headers, {_ in })
             }
             
