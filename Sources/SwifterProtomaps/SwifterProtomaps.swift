@@ -136,7 +136,7 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         
         // https://httpwg.org/specs/rfc7233.html#header.accept-ranges
                 
-        var filesize = "*"
+        let filesize = "*"
         
         /*
         do {
