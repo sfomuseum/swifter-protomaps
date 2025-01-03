@@ -113,6 +113,10 @@ You will need to ensure your application has the following `NSAppTransportSecuri
 	</dict>
 ```
 
+Note: The use of the `NSExceptionAllowsInsecureHTTPLoads` setting will prevent any application using this package from being accepted by the Apple AppStore. That's not a "feature" so much as an acceptable trade-off (for SFO Museum) since this package was developed for local/on-site applications.
+
+There are other HTTP libraries which support TLS (HTTPS) and which look to be able to run as a background service in an iOS application (notably [hummingbird](https://github.com/hummingbird-project/hummingbird/)) but they have not been tested yet. If you have any experience with or other packages we'd love to hear about it.
+
 ## Swift Package Manager
 
 Add the following entries to your `dependencies` block and any relevant `target` blocks.
