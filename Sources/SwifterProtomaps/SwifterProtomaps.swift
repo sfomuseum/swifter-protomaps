@@ -86,7 +86,6 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         
         let db_url = opts.Root.appendingPathComponent(rel_path)
     
-        
         var pmtiles_reader: PMTilesReader
         
         do {
