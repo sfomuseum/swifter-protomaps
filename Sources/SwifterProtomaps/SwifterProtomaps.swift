@@ -85,15 +85,17 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         // Fetch data
         
         let db_url = opts.Root.appendingPathComponent(rel_path)
+    
         
         var pmtiles_reader: PMTilesReader
         
         do {
-            pmtiles_reader = try PMTilesReader(
-                db: db_url,
-                use_file_descriptor: opts.UseFileDescriptor,
-                logger: opts.Logger
-            )
+            
+            var reader_opts = PMTilesReaderOptions(db_url, use_file_descriptor: opts.UseFileDescriptor)
+            reader_opts.Logger = opts.Logger
+            
+            pmtiles_reader = try PMTilesReader(reader_opts)
+            
         } catch {
             opts.Logger?.error("Failed to instantiate PMTiles reader \(error)")
             rsp_headers["X-Error"] = "Failed to instantiate PMTiles reader"
