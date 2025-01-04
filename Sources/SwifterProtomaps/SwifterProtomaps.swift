@@ -89,7 +89,11 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         var pmtiles_reader: PMTilesReader
         
         do {
-            pmtiles_reader = try PMTilesReader(db: db_url, use_file_descriptor: opts.UseFileDescriptor)
+            pmtiles_reader = try PMTilesReader(
+                db: db_url,
+                use_file_descriptor: opts.UseFileDescriptor,
+                logger: opts.Logger
+            )
         } catch {
             opts.Logger?.error("Failed to instantiate PMTiles reader \(error)")
             rsp_headers["X-Error"] = "Failed to instantiate PMTiles reader"
@@ -140,6 +144,8 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         rsp_headers["Content-Length"] = content_length
         rsp_headers["Content-Range"] = content_range
         rsp_headers["Accept-Ranges"] = "bytes"
+        
+        opts.Logger?.debug("Return 206 \(content_range)")
         
         return .raw(206, "Partial Content", rsp_headers, { writer in
             
