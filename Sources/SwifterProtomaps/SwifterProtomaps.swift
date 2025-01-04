@@ -1,7 +1,7 @@
 import Swifter
 import Foundation
 import Logging
-import System
+import PMTiles
 
 /// ServeProtomapsOptions defines runtime options for serving Protomaps tiles
 public struct ServeProtomapsOptions {
@@ -28,8 +28,6 @@ public struct ServeProtomapsOptions {
 }
 
 /// ServeProtomapsTiles will serve HTTP range requests for zero or more Protomaps tile databases in a directory.
-@available(iOS 14.0, *)
-@available(macOS 11.0, *)
 public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest) -> HttpResponse) {
     
     return { r in
@@ -45,42 +43,7 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         if opts.StripPrefix != "" {
             rel_path = rel_path.replacingOccurrences(of: opts.StripPrefix, with: "")
         }
-        
-        let uri = opts.Root.appendingPathComponent(rel_path)
-        let path = uri.absoluteString
-        
-        // https://developer.apple.com/documentation/foundation/filehandle
-        
-        var fh: FileHandle?
-        var fd: FileDescriptor?
-        
-        do {
-            
-            if opts.UseFileDescriptor {
-                let fp = FilePath(uri.absoluteString.replacingOccurrences(of: "file://", with: ""))
-                fd = try FileDescriptor.open(fp, .readOnly)
-            } else {
-                fh = try FileHandle(forReadingFrom: uri)
-            }
-            
-        } catch {
-            opts.Logger?.error("Failed to open path (\(path)) for reading \(error)")
-            return .raw(404, "Not found", rsp_headers, {_ in })
-        }
-        
-        defer {
-            do {
-                if opts.UseFileDescriptor {
-                    try fd?.close()
-                } else {
-                    try fh?.close()
-                }
                 
-            } catch (let error) {
-                opts.Logger?.warning("Failed to close \(path), \(error)")
-            }
-        }
-        
         guard var range_h = r.headers["range"] else {
             rsp_headers["Access-Control-Allow-Origin"] = opts.AllowOrigins
             rsp_headers["Access-Control-Allow-Headers"] = opts.AllowHeaders
@@ -107,7 +70,7 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             return .raw(400, "Bad Request", rsp_headers, {_ in })
         }
         
-        guard let stop = Int(positions[1]) else {
+        guard let stop = UInt64(positions[1]) else {
             rsp_headers["X-Error"] = "Invalid stopping range"
             return .raw(400, "Bad Request", rsp_headers, {_ in })
         }
@@ -117,74 +80,59 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             return .raw(400, "Bad Request", rsp_headers, {_ in })
         }
         
-        opts.Logger?.debug("Read data from \(path) start: \(start) stop: \(stop)")
-        
         let next = stop + 1
         
-        let body: Data!
+        // Fetch data
+        
+        let db_url = opts.Root.appendingPathComponent(rel_path)
+    
+        var pmtiles_reader: PMTilesReader
         
         do {
             
-            opts.Logger?.debug("Seek \(path) to \(start)")
+            var reader_opts = PMTilesReaderOptions(db_url, use_file_descriptor: opts.UseFileDescriptor)
+            reader_opts.Logger = opts.Logger
             
-            if opts.UseFileDescriptor {
-                try fd?.seek(offset: Int64(start), from: FileDescriptor.SeekOrigin.start)
-            } else {
-                fh?.seek(toFileOffset: start)
-            }
+            pmtiles_reader = try PMTilesReader(reader_opts)
             
         } catch {
-            opts.Logger?.error("Failed to seek to \(start) for \(path), \(error)")
-            rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
+            opts.Logger?.error("Failed to instantiate PMTiles reader \(error)")
+            rsp_headers["X-Error"] = "Failed to instantiate PMTiles reader"
             return .raw(500, "Internal Server Error", rsp_headers, {_ in })
         }
         
-        opts.Logger?.debug("Read data from \(path) to \(next)")
+        defer {
+            if case .failure(let error) = pmtiles_reader.Close() {
+                opts.Logger?.error("Failed to close PMTiles reader \(error)")
+            }
+        }
         
-        if opts.UseFileDescriptor {
-            
-            let read_len = Int(UInt64(next) - start)
-            opts.Logger?.debug("Read \(read_len) bytes from \(path)")
-            
-            guard let data = readData(from: fd!.rawValue, length: Int(read_len)) else {
-                opts.Logger?.error("Failed to read to \(next) for \(path)")
-                rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
-                return .raw(500, "Internal Server Error", rsp_headers, {_ in })
-            }
-            
+        opts.Logger?.debug("Read data from \(db_url.absoluteString) start: \(start) stop: \(stop)")
+        
+        let body: Data!
+        
+        let read_rsp = pmtiles_reader.Read(from: start, to: stop)
+        
+        switch read_rsp {
+        case .success(let data):
             body = data
-            
-        } else {
-            
-            do {
-                body = try fh?.read(upToCount: next)
-            } catch (let error){
-                opts.Logger?.error("Failed to read to \(next) for \(path), \(error)")
-                rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
-                return .raw(500, "Internal Server Error", rsp_headers, {_ in })
-            }
-            
+        case .failure(let error):
+            opts.Logger?.error("Failed to read data from PMTiles reader, \(error)")
+            rsp_headers["X-Error"] = "Failed to read from Protomaps tile"
+            return .raw(500, "Internal Server Error", rsp_headers, {_ in })
         }
         
         // https://httpwg.org/specs/rfc7233.html#header.accept-ranges
         
         var filesize = "*"
         
-        do {
-            if opts.UseFileDescriptor {
-                
-                let size = try fd!.seek(offset: 0, from: FileDescriptor.SeekOrigin.end)
-                filesize = String(size)
-                
-                opts.Logger?.debug("filesize \(filesize)")
-                
-            } else {
-                
-                let size = try fh!.seekToEnd()
-                filesize = String(size)
-            }
-        } catch (let error){
-            opts.Logger?.warning("Failed to determine filesize for \(path), \(error)")
+        let size_rsp = pmtiles_reader.Size()
+        
+        switch size_rsp {
+        case .success(let sz):
+            filesize = String(sz)
+        case .failure(let error):
+            opts.Logger?.warning("Failed to determine size from PMTiles reader \(error)")
         }
         
         let length = UInt64(next) - start
@@ -198,6 +146,8 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
         rsp_headers["Content-Range"] = content_range
         rsp_headers["Accept-Ranges"] = "bytes"
         
+        opts.Logger?.debug("Return 206 \(content_range)")
+        
         return .raw(206, "Partial Content", rsp_headers, { writer in
             
             do {
@@ -207,24 +157,4 @@ public func ServeProtomapsTiles(_ opts: ServeProtomapsOptions) -> ((HttpRequest)
             }
         })
     }
-}
-
-internal func readData(from fileDescriptor: Int32, length: Int) -> Data? {
-    // Create a Data buffer of the desired length
-    var data = Data(count: length)
-    
-    // Read the data into the Data buffer
-    let bytesRead = data.withUnsafeMutableBytes { buffer -> Int in
-        guard let baseAddress = buffer.baseAddress else { return -1 }
-        return read(fileDescriptor, baseAddress, length)
-    }
-    
-    // Handle errors or end-of-file
-    guard bytesRead > 0 else {
-        return nil // Return nil if no bytes were read
-    }
-    
-    // Resize the Data object to the actual number of bytes read
-    data.removeSubrange(bytesRead..<data.count)
-    return data
 }

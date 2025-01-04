@@ -19,6 +19,15 @@
       }
     },
     {
+      "identity" : "swift-pmtiles",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sfomuseum/swift-pmtiles.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "ff61be142df4e469f4c7b1403f959d058c91de1c"
+      }
+    },
+    {
       "identity" : "swifter",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sfomuseum/swifter.git",

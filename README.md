@@ -8,7 +8,7 @@ This package provides a simple `ServeProtomapsTiles` helper method to serve one 
 
 It was designed for use with an iOS application built around `WKWebKitView` views whose HTML/JavaScript code need to load and render local (on device) Protomaps tiles.
 
-It is not designed to be a general purpose function for serving files using HTTP `Range` requests.
+It is not designed to be a general purpose function for serving files using HTTP `Range` requests. It uses the [swift-pmtiles](https://github.com/sfomuseum/swift-pmtiles) package under the hood.
 
 For a longer version detailing why we did this please see the [Serving map tiles to yourself using Protomaps and iOS](https://millsfield.sfomuseum.org/blog/2022/03/30/swifter-protomaps/) blog post.
 
@@ -167,6 +167,7 @@ This package requires:
 
 ## See also
 
+* https://github.com/sfomuseum/swift-pmtiles
 * https://github.com/sfomuseum/swifter-protomaps-example
 * https://github.com/sfomuseum/swifter
 * https://github.com/protomaps/
